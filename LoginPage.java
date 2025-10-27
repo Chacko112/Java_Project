@@ -3,7 +3,6 @@ package opps;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.sql.*;
 
 public class LoginPage extends JFrame implements ActionListener {
 
@@ -15,7 +14,7 @@ public class LoginPage extends JFrame implements ActionListener {
     public LoginPage() {
         setTitle("Hotel Management System - Login");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(400, 280);
+        setSize(400, 280);  // window size
         setLocationRelativeTo(null);
 
         JPanel panel = new JPanel(new GridBagLayout());
@@ -87,40 +86,26 @@ public class LoginPage extends JFrame implements ActionListener {
     @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getSource() == loginButton) {
-            String role = (String) roleBox.getSelectedItem();
+            String selectedRole = (String) roleBox.getSelectedItem();
             String username = usernameField.getText();
             String password = new String(passwordField.getPassword());
 
-            // --- DATABASE AUTHENTICATION ---
-            try {
-                Connection conn = DatabaseConnection.getConnection();
-                String sql = "SELECT * FROM employee WHERE username=? AND password_hash=? AND role=?";
-                PreparedStatement ps = conn.prepareStatement(sql);
-                ps.setString(1, username);
-                ps.setString(2, password);
-                ps.setString(3, role);
+            // Authenticate user from database
+            String dbRole = UserAuthentication.authenticateUser(username, password);
 
-                ResultSet rs = ps.executeQuery();
-                if (rs.next()) {
-                    JOptionPane.showMessageDialog(this, "Welcome, " + role + "!");
-                    if (role.equals("Admin")) {
-                        new AdminMainFrame(username).setVisible(true);
-                    } else {
-                        new EmployeeMainFrame(username).setVisible(true);
-                    }
-                    dispose();
-                } else {
-                    JOptionPane.showMessageDialog(this, "Invalid Credentials!", "Error", JOptionPane.ERROR_MESSAGE);
+            if (dbRole != null && dbRole.equalsIgnoreCase(selectedRole)) {
+                JOptionPane.showMessageDialog(this, "Welcome, " + username + "!");
+                
+                if (dbRole.equalsIgnoreCase("Admin")) {
+                    new AdminMainFrame(username).setVisible(true);
+                } else if (dbRole.equalsIgnoreCase("Employee")) {
+                    new EmployeeMainFrame(username).setVisible(true);
                 }
-
-                rs.close();
-                ps.close();
-
-            } catch (SQLException ex) {
-                ex.printStackTrace();
-                JOptionPane.showMessageDialog(this, "Database error: " + ex.getMessage());
+                
+                dispose();
+            } else {
+                JOptionPane.showMessageDialog(this, "Invalid Credentials!", "Error", JOptionPane.ERROR_MESSAGE);
             }
-
         } else if (e.getSource() == resetButton) {
             usernameField.setText("");
             passwordField.setText("");
